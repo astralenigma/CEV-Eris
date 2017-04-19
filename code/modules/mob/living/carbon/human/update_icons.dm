@@ -217,7 +217,6 @@ var/global/list/damage_icon_parts = list()
 	var/fat = body_build ? body_build.index : ""
 	var/g = (gender == FEMALE) ? "_f" : "_m"
 	stand_icon = new('icons/mob/human.dmi',"human[g][fat]")
-	stand_icon.Blend(base_icon,ICON_OVERLAY)
 
 	if(update_icons)
 		update_icons()
@@ -267,10 +266,10 @@ var/global/draw_implants = 0
 /mob/verb/toggle_implan_drawing()
 	set name = "Toggle implant drawing"
 	set category = "Debug"
-	if(!check_rignts(R_DEBUG))
+	if(!check_rights(R_DEBUG))
 		return 0
 	draw_implants = !draw_implants
-	message_admin("[key] toggle implant drawing. Now: [draw_implants ? "ON" : "OFF"].")
+	message_admins("[key] toggle implant drawing. Now: [draw_implants ? "ON" : "OFF"].")
 
 /mob/living/carbon/human/update_mutations(var/update_icons=1)
 	if(!global.draw_implants)
