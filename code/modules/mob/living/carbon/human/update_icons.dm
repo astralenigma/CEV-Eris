@@ -214,113 +214,10 @@ var/global/list/damage_icon_parts = list()
 //BASE MOB SPRITE
 /mob/living/carbon/human/proc/update_body(var/update_icons=1)
 
-	var/husk_color_mod = rgb(96,88,80)
-	var/hulk_color_mod = rgb(48,224,40)
-
-	var/husk = (HUSK in src.mutations)
 	var/fat = body_build ? body_build.index : ""
-	var/hulk = (HULK in src.mutations)
-	var/skeleton = (SKELETON in src.mutations)
-
-	//CACHING: Generate an index key from visible bodyparts.
-	//0 = destroyed, 1 = normal, 2 = robotic, 3 = necrotic.
-
-	//Create a new, blank icon for our mob to use.
-	if(stand_icon)
-		qdel(stand_icon)
-	stand_icon = new(species.icon_template ? species.icon_template : 'icons/mob/human.dmi',"blank")
-
-	var/g = "male"
-	if(gender == FEMALE)
-		g = "female"
-
-	var/icon_key = "[species.race_key][g][fat][s_tone][skin_color]"
-	if(lip_style)
-		icon_key += "[lip_style]"
-	else
-		icon_key += "nolips"
-	var/obj/item/organ/eyes/eyes = internal_organs_by_name["eyes"]
-	if(eyes)
-		icon_key += "[eyes_color]"
-	else
-		icon_key += "#000000"
-
-	for(var/organ_tag in species.has_limbs)
-		var/obj/item/organ/external/part = organs_by_name[organ_tag]
-		if(isnull(part) || part.is_stump())
-			icon_key += "0"
-		else if(part.status & ORGAN_ROBOT || part.robotic & ORGAN_ROBOT)
-			icon_key += "2[part.model ? "-[part.model]": ""]"
-		else if(part.status & ORGAN_DEAD)
-			icon_key += "3"
-		else
-			icon_key += "1"
-		if(part)
-			icon_key += "[part.species.race_key]"
-			icon_key += "[part.dna.GetUIState(DNA_UI_GENDER)]"
-			icon_key += "[part.dna.GetUIValue(DNA_UI_SKIN_TONE)]"
-			if(part.skin_col)
-				icon_key += "[skin_color]"
-			else
-				icon_key += "#000000"
-
-	icon_key = "[icon_key][husk ? 1 : 0][hulk ? 1 : 0][skeleton ? 1 : 0]"
-
-	var/icon/base_icon
-	if(human_icon_cache[icon_key])
-		base_icon = human_icon_cache[icon_key]
-	else
-		//BEGIN CACHED ICON GENERATION.
-		base_icon = new('icons/mob/human.dmi',"blank")
-
-		for(var/obj/item/organ/external/part in organs)
-			var/icon/temp = part.get_icon(skeleton)
-			//That part makes left and right legs drawn topmost and lowermost when human looks WEST or EAST
-			//And no change in rendering for other parts (they icon_position is 0, so goes to 'else' part)
-			if(part.icon_position&(LEFT|RIGHT))
-				var/icon/temp2 = new('icons/mob/human.dmi',"blank")
-				temp2.Insert(new/icon(temp,dir=NORTH),dir=NORTH)
-				temp2.Insert(new/icon(temp,dir=SOUTH),dir=SOUTH)
-				if(!(part.icon_position & LEFT))
-					temp2.Insert(new/icon(temp,dir=EAST),dir=EAST)
-				if(!(part.icon_position & RIGHT))
-					temp2.Insert(new/icon(temp,dir=WEST),dir=WEST)
-				base_icon.Blend(temp2, ICON_OVERLAY)
-				if(part.icon_position & LEFT)
-					temp2.Insert(new/icon(temp,dir=EAST),dir=EAST)
-				if(part.icon_position & RIGHT)
-					temp2.Insert(new/icon(temp,dir=WEST),dir=WEST)
-				base_icon.Blend(temp2, ICON_UNDERLAY)
-			else
-				base_icon.Blend(temp, ICON_OVERLAY)
-
-		if(!skeleton)
-			if(husk)
-				base_icon.ColorTone(husk_color_mod)
-			else if(hulk)
-				var/list/tone = ReadRGB(hulk_color_mod)
-				base_icon.MapColors(rgb(tone[1],0,0),rgb(0,tone[2],0),rgb(0,0,tone[3]))
-
-		//Handle husk overlay.
-		if(husk && ("overlay_husk" in icon_states(species.icobase)))
-			var/icon/mask = new(base_icon)
-			var/icon/husk_over = new(species.icobase,"overlay_husk")
-			mask.MapColors(0,0,0,1, 0,0,0,1, 0,0,0,1, 0,0,0,1, 0,0,0,0)
-			husk_over.Blend(mask, ICON_ADD)
-			base_icon.Blend(husk_over, ICON_OVERLAY)
-
-		human_icon_cache[icon_key] = base_icon
-
-	//END CACHED ICON GENERATION.
+	var/g = (gender == FEMALE) ? "_f" : "_m"
+	stand_icon = new('icons/mob/human.dmi',"human[g][fat]")
 	stand_icon.Blend(base_icon,ICON_OVERLAY)
-
-	//Underwear
-	if(species.appearance_flags & HAS_UNDERWEAR)
-		for(var/category in all_underwear)
-			var/datum/category_item/underwear/UW = all_underwear[category]
-			if(!UW.icon_state)
-				continue
-			stand_icon.Blend(new /icon(body_build.underwear_icon, UW.icon_state), ICON_OVERLAY)
 
 	if(update_icons)
 		update_icons()
@@ -365,7 +262,21 @@ var/global/list/damage_icon_parts = list()
 
 	if(update_icons)   update_icons()
 
+var/global/draw_implants = 0
+
+/mob/verb/toggle_implan_drawing()
+	set name = "Toggle implant drawing"
+	set category = "Debug"
+	if(!check_rignts(R_DEBUG))
+		return 0
+	draw_implants = !draw_implants
+	message_admin("[key] toggle implant drawing. Now: [draw_implants ? "ON" : "OFF"].")
+
 /mob/living/carbon/human/update_mutations(var/update_icons=1)
+	if(!global.draw_implants)
+		if(update_icons)   update_icons()
+		return
+
 	var/fat = body_build ? body_build.index : ""
 
 	var/image/standing	= image("icon" = 'icons/effects/genetics.dmi')
